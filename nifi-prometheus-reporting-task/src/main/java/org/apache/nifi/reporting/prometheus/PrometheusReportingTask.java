@@ -16,53 +16,40 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
-import com.yammer.metrics.core.VirtualMachineMetrics;
+import io.prometheus.client.CollectorRegistry;
+import io.prometheus.client.Gauge;
+import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.prometheus.api.MetricsBuilder;
-import org.apache.nifi.reporting.prometheus.metrics.MetricsService;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
-import javax.json.Json;
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.ws.rs.client.*;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @Tags({"reporting", "prometheus", "metrics"})
-@CapabilityDescription("Publishes metrics from NiFi to Ambari Metrics Service (AMS). Due to how the Ambari Metrics Service " +
-        "works, this reporting task should be scheduled to run every 60 seconds. Each iteration it will send the metrics " +
-        "from the previous iteration, and calculate the current metrics to be sent on next iteration. Scheduling this reporting " +
-        "task at a frequency other than 60 seconds may produce unexpected results.")
+@CapabilityDescription("")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
     static final PropertyDescriptor METRICS_COLLECTOR_URL = new PropertyDescriptor.Builder()
-            .name("Metrics Collector URL")
-            .description("The URL of the Ambari Metrics Collector Service")
+            .name("Prometheus PushGateway")
+            .description("The URL of the Prometheus PushGateway Service")
             .required(true)
             .expressionLanguageSupported(true)
-            .defaultValue("http://localhost:6188/ws/v1/timeline/metrics")
+            .defaultValue("http://localhost:9091")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
 
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
             .name("Application ID")
-            .description("The Application ID to be included in the metrics sent to Ambari")
+            .description("The Application ID to be included in the metrics sent to Prometheus")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("nifi")
@@ -71,7 +58,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
-            .description("The Hostname of this NiFi instance to be included in the metrics sent to Ambari")
+            .description("The Hostname of this NiFi instance to be included in the metrics sent to Prometheus")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("${hostname(true)}")
@@ -86,12 +73,30 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    private final MetricsService metricsService = new MetricsService();
-    private volatile Client client;
-    private volatile JsonBuilderFactory factory;
-    // The JVM metrics object
-    private volatile VirtualMachineMetrics virtualMachineMetrics;
-    private volatile JsonObject previousMetrics = null;
+
+    static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
+            .name("The Job Name")
+            .description("The name of the exporting job")
+            .defaultValue("nifi_reporting_job")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    private static final CollectorRegistry REGISTRY = new CollectorRegistry();
+    private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
+            .name("process_group_amount_flowfiles_total")
+            .help("Total number of FlowFiles in ProcessGroup")
+            .labelNames("status", "server", "application", "process_group")
+            .register(REGISTRY);
+    private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
+            .name("process_group_amount_bytes_total")
+            .help("Total number of Bytes in ProcessGroup")
+            .labelNames("status", "server", "application", "process_group")
+            .register(REGISTRY);
+    private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
+            .name("process_group_amount_threads_total")
+            .help("Total amount of threads in ProcessGroup")
+            .labelNames("status", "server", "application", "process_group")
+            .register(REGISTRY);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -100,77 +105,45 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         properties.add(APPLICATION_ID);
         properties.add(HOSTNAME);
         properties.add(PROCESS_GROUP_ID);
+        properties.add(JOB_NAME);
         return properties;
-    }
-
-    // gets called every time the component gets scheduled
-    @OnScheduled
-    public void setup(final ConfigurationContext context) throws IOException {
-        final Map<String, ?> config = Collections.emptyMap();
-        factory = Json.createBuilderFactory(config);
-        client = createClient();
-        virtualMachineMetrics = VirtualMachineMetrics.getInstance();
-        previousMetrics = null;
-    }
-
-    // used for testing to allow tests to override the client
-    protected Client createClient() {
-        return ClientBuilder.newClient();
     }
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        // Read the properties out of the context and check for an exisiting processgroup
-        final String metricsCollectorUrl = context.getProperty(METRICS_COLLECTOR_URL).evaluateAttributeExpressions().getValue();
+        final String metricsCollectorUrl = context.getProperty(METRICS_COLLECTOR_URL).evaluateAttributeExpressions().getValue().replace("http://", "");
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
+        final String jobName = context.getProperty(JOB_NAME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
 
         final boolean pgIdIsSet = context.getProperty(PROCESS_GROUP_ID).isSet();
         final String processGroupId = pgIdIsSet ? context.getProperty(PROCESS_GROUP_ID).evaluateAttributeExpressions().getValue() : null;
 
-        final long start = System.currentTimeMillis();
-
-        // send the metrics from last execution
-        if (previousMetrics != null) {
-            final WebTarget metricsTarget = client.target(metricsCollectorUrl);
-            final Invocation.Builder invocation = metricsTarget.request();
-
-            final Entity<String> entity = Entity.json(previousMetrics.toString());
-            getLogger().debug("Sending metrics {} to Ambari", new Object[]{entity.getEntity()});
-
-            final Response response = invocation.post(entity);
-            if (response.getStatus() == Response.Status.OK.getStatusCode()) {
-                final long completedMillis = TimeUnit.NANOSECONDS.toMillis(System.currentTimeMillis() - start);
-                getLogger().info("Successfully sent metrics to Ambari in {} ms", new Object[]{completedMillis});
-            } else {
-                final String responseEntity = response.hasEntity() ? response.readEntity(String.class) : "unknown error";
-                getLogger().error("Error sending metrics to Ambari due to {} - {}", new Object[]{response.getStatus(), responseEntity});
-            }
-        }
-
-        // calculate the current metrics, but store them to be sent next time
         final ProcessGroupStatus status = processGroupId == null ? context.getEventAccess().getControllerStatus() : context.getEventAccess().getGroupStatus(processGroupId);
 
         if (status != null) {
-            final Map<String, String> statusMetrics = metricsService.getMetrics(status, pgIdIsSet);
-            final Map<String, String> jvmMetrics = metricsService.getMetrics(virtualMachineMetrics);
+            String processGroupName = processGroupId == null ? "global" : processGroupId;
+            AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getFlowFilesSent());
+            AMOUNT_FLOWFILES_TOTAL.labels("queued", hostname, applicationId, processGroupName).set(status.getFlowFilesSent());
+            AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getFlowFilesReceived());
 
-            final MetricsBuilder metricsBuilder = new MetricsBuilder(factory);
+            AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getBytesSent());
+            AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupName).set(status.getBytesRead());
+            AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupName).set(status.getBytesWritten());
+            AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getBytesReceived());
+            AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupName).set(status.getBytesTransferred());
 
-            final JsonObject metricsObject = metricsBuilder
-                    .applicationId(applicationId)
-                    .instanceId(status.getId())
-                    .hostname(hostname)
-                    .timestamp(start)
-                    .addAllMetrics(statusMetrics)
-                    .addAllMetrics(jvmMetrics)
-                    .build();
+            AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupName).set(status.getActiveThreadCount());
 
-            previousMetrics = metricsObject;
-        } else {
-            getLogger().error("No process group status with ID = {}", new Object[]{processGroupId});
-            previousMetrics = null;
+            final PushGateway pg = new PushGateway(metricsCollectorUrl);
+
+            try {
+                pg.pushAdd(REGISTRY, jobName);
+            } catch (IOException e) {
+                getLogger().error("Failed pushing to Prometheus PushGateway due to {}; routing to failure", e);
+            }
+
         }
-    }
 
+    }
 }

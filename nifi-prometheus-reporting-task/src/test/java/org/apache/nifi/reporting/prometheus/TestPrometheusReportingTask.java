@@ -16,7 +16,6 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
-import org.apache.nifi.controller.ConfigurationContext;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.controller.status.ProcessorStatus;
 import org.apache.nifi.logging.ComponentLog;
@@ -77,9 +76,10 @@ public class TestPrometheusReportingTask {
 
     @Test
     public void testOnTrigger() throws InitializationException, IOException {
-        final String metricsUrl = "http://myambari:6188/ws/v1/timeline/metrics";
-        final String applicationId = "NIFI";
+        final String metricsUrl = "http://localhost:9091";
+        final String applicationId = "nifi";
         final String hostName = "localhost";
+        final String jobName = "nifi_reporting_job";
 
         // create the jersey client mocks for handling the post
         final Client client = Mockito.mock(Client.class);
@@ -99,8 +99,6 @@ public class TestPrometheusReportingTask {
         Mockito.when(initContext.getIdentifier()).thenReturn(UUID.randomUUID().toString());
         Mockito.when(initContext.getLogger()).thenReturn(logger);
 
-        // mock the ConfigurationContext for setup(...)
-        final ConfigurationContext configurationContext = Mockito.mock(ConfigurationContext.class);
 
         // mock the ReportingContext for onTrigger(...)
         final ReportingContext context = Mockito.mock(ReportingContext.class);
@@ -112,31 +110,17 @@ public class TestPrometheusReportingTask {
                 .thenReturn(new MockPropertyValue(hostName));
         Mockito.when(context.getProperty(PrometheusReportingTask.PROCESS_GROUP_ID))
                 .thenReturn(new MockPropertyValue("1234"));
-
+        Mockito.when(context.getProperty(PrometheusReportingTask.JOB_NAME))
+                .thenReturn(new MockPropertyValue(jobName));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
         Mockito.when(eventAccess.getControllerStatus()).thenReturn(status);
+        Mockito.when(eventAccess.getGroupStatus("1234")).thenReturn(status);
 
         // create a testable instance of the reporting task
-        final PrometheusReportingTask task = new TestablePrometheusReportingTask(client);
+        final PrometheusReportingTask task = new PrometheusReportingTask();
         task.initialize(initContext);
-        task.setup(configurationContext);
         task.onTrigger(context);
-    }
-
-    // override the creation of the client to provide a mock
-    private class TestablePrometheusReportingTask extends PrometheusReportingTask {
-
-        private Client testClient;
-
-        public TestablePrometheusReportingTask(Client client) {
-            this.testClient = client;
-        }
-
-        @Override
-        protected Client createClient() {
-            return testClient;
-        }
     }
 }
