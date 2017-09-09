@@ -17,7 +17,7 @@
 package org.apache.nifi.reporting.prometheus.metrics;
 
 /**
- * The Metric names to send to Ambari.
+ * The Metric names to send to Prometheus.
  */
 public interface MetricNames {
 
