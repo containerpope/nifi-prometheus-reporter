@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.nifi.reporting.ambari;
+package org.apache.nifi.reporting.prometheus;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -27,8 +27,8 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
-import org.apache.nifi.reporting.ambari.api.MetricsBuilder;
-import org.apache.nifi.reporting.ambari.metrics.MetricsService;
+import org.apache.nifi.reporting.prometheus.api.MetricsBuilder;
+import org.apache.nifi.reporting.prometheus.metrics.MetricsService;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import javax.json.Json;
