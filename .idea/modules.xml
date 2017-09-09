@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/nifi-prometheus-bundle.iml" filepath="$PROJECT_DIR$/nifi-prometheus-bundle.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nifi-prometheus-nar/nifi-prometheus-nar.iml" filepath="$PROJECT_DIR$/nifi-prometheus-nar/nifi-prometheus-nar.iml" />
+      <module fileurl="file://$PROJECT_DIR$/nifi-prometheus-reporting-task/nifi-prometheus-reporting-task.iml" filepath="$PROJECT_DIR$/nifi-prometheus-reporting-task/nifi-prometheus-reporting-task.iml" />
+    </modules>
+  </component>
+</project>
