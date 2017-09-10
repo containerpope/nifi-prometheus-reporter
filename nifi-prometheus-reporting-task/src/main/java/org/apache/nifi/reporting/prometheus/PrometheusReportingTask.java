@@ -23,6 +23,7 @@ import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
+import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
@@ -31,7 +32,10 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.regex.Pattern;
 
 @Tags({"reporting", "prometheus", "metrics"})
 @CapabilityDescription("")
@@ -65,13 +69,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
 
-    static final PropertyDescriptor PROCESS_GROUP_ID = new PropertyDescriptor.Builder()
-            .name("Process Group ID")
-            .description("If specified, the reporting task will send metrics about this process group only. If"
-                    + " not, the root process group is used and global metrics are sent.")
+    static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
+            .name("Process Group ID(s)")
+            .description("If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
+                    + " none of the group-IDs could be found or no IDs are defined, the Nifi-Flow-ProcessGroup is used and global metrics are sent.")
             .required(false)
             .expressionLanguageSupported(true)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .addValidator(StandardValidators
+                    .createListValidator(true, true
+                            , StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
 
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
@@ -81,7 +87,9 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
+
     private static final CollectorRegistry REGISTRY = new CollectorRegistry();
+
     private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
             .name("process_group_amount_flowfiles_total")
             .help("Total number of FlowFiles in ProcessGroup")
@@ -104,7 +112,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         properties.add(METRICS_COLLECTOR_URL);
         properties.add(APPLICATION_ID);
         properties.add(HOSTNAME);
-        properties.add(PROCESS_GROUP_ID);
+        properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
         return properties;
     }
@@ -116,34 +124,52 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
 
-        final boolean pgIdIsSet = context.getProperty(PROCESS_GROUP_ID).isSet();
-        final String processGroupId = pgIdIsSet ? context.getProperty(PROCESS_GROUP_ID).evaluateAttributeExpressions().getValue() : null;
+        final PushGateway pg = new PushGateway(metricsCollectorUrl);
 
-        final ProcessGroupStatus status = processGroupId == null ? context.getEventAccess().getControllerStatus() : context.getEventAccess().getGroupStatus(processGroupId);
+        for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
 
-        if (status != null) {
-            String processGroupName = processGroupId == null ? "global" : processGroupId;
-            AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getFlowFilesSent());
-            AMOUNT_FLOWFILES_TOTAL.labels("queued", hostname, applicationId, processGroupName).set(status.getFlowFilesSent());
-            AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getFlowFilesReceived());
+            String processGroupID = status.getId();
+            AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
+            AMOUNT_FLOWFILES_TOTAL.labels("queued", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
+            AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getFlowFilesReceived());
 
-            AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getBytesSent());
-            AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupName).set(status.getBytesRead());
-            AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupName).set(status.getBytesWritten());
-            AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getBytesReceived());
-            AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupName).set(status.getBytesTransferred());
+            AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getBytesSent());
+            AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupID).set(status.getBytesRead());
+            AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupID).set(status.getBytesWritten());
+            AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getBytesReceived());
+            AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupID).set(status.getBytesTransferred());
 
-            AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupName).set(status.getActiveThreadCount());
-
-            final PushGateway pg = new PushGateway(metricsCollectorUrl);
+            AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupID).set(status.getActiveThreadCount());
 
             try {
                 pg.pushAdd(REGISTRY, jobName);
             } catch (IOException e) {
                 getLogger().error("Failed pushing to Prometheus PushGateway due to {}; routing to failure", e);
             }
-
         }
+    }
 
+    /**
+     * Searches all ProcessGroups defined in a PropertyValue as a comma-separated list of ProcessorGroup-IDs.
+     * Therefore blanks are trimmed and new-line characters are removed! Processors that can not be found are ignored.
+     *
+     * @return List of all ProcessorGroups that were found.
+     * If no groupIDs are defined or none of them could be found an array containing the root-DataFlow will be returned.
+     */
+    private ProcessGroupStatus[] searchProcessGroups(final ReportingContext context, PropertyValue value) {
+        if (value.isSet()) {
+            String content = value.evaluateAttributeExpressions().getValue();
+
+            ProcessGroupStatus[] groups = Arrays
+                    .stream(content.replace("\n", "").split(","))
+                    .map(String::trim)
+                    .map(context.getEventAccess()::getGroupStatus)
+                    .filter(Objects::nonNull)
+                    .toArray(ProcessGroupStatus[]::new);
+
+            return groups.length > 0 ? groups : new ProcessGroupStatus[]{context.getEventAccess().getControllerStatus()};
+        } else {
+            return new ProcessGroupStatus[]{context.getEventAccess().getControllerStatus()};
+        }
     }
 }

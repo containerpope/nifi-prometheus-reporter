@@ -108,7 +108,7 @@ public class TestPrometheusReportingTask {
                 .thenReturn(new MockPropertyValue(applicationId));
         Mockito.when(context.getProperty(PrometheusReportingTask.HOSTNAME))
                 .thenReturn(new MockPropertyValue(hostName));
-        Mockito.when(context.getProperty(PrometheusReportingTask.PROCESS_GROUP_ID))
+        Mockito.when(context.getProperty(PrometheusReportingTask.PROCESS_GROUP_IDS))
                 .thenReturn(new MockPropertyValue("1234"));
         Mockito.when(context.getProperty(PrometheusReportingTask.JOB_NAME))
                 .thenReturn(new MockPropertyValue(jobName));
