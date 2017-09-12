@@ -16,8 +16,6 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
-import io.prometheus.client.CollectorRegistry;
-import io.prometheus.client.Gauge;
 import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -88,24 +86,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
-    private static final CollectorRegistry REGISTRY = new CollectorRegistry();
-
-    private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
-            .name("process_group_amount_flowfiles_total")
-            .help("Total number of FlowFiles in ProcessGroup")
-            .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
-    private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
-            .name("process_group_amount_bytes_total")
-            .help("Total number of Bytes in ProcessGroup")
-            .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
-    private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
-            .name("process_group_amount_threads_total")
-            .help("Total amount of threads in ProcessGroup")
-            .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {

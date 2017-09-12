@@ -44,26 +44,26 @@ public class PrometheusMetricsFactory {
 
 
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String hostname, String applicationId) {
-        String processGroupID = status.getId();
-        AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
-        AMOUNT_FLOWFILES_TOTAL.labels("queued", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
-        AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getFlowFilesReceived());
+        String processGroupName = status.getName();
+        AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getFlowFilesSent());
+        AMOUNT_FLOWFILES_TOTAL.labels("transferred", hostname, applicationId, processGroupName).set(status.getFlowFilesTransferred());
+        AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getFlowFilesReceived());
 
-        AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getBytesSent());
-        AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupID).set(status.getBytesRead());
-        AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupID).set(status.getBytesWritten());
-        AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getBytesReceived());
-        AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupID).set(status.getBytesTransferred());
+        AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupName).set(status.getBytesSent());
+        AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupName).set(status.getBytesRead());
+        AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupName).set(status.getBytesWritten());
+        AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupName).set(status.getBytesReceived());
+        AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupName).set(status.getBytesTransferred());
 
-        SIZE_CONTENT_TOTAL.labels("output", hostname, applicationId, processGroupID).set(status.getOutputContentSize());
-        SIZE_CONTENT_TOTAL.labels("input", hostname, applicationId, processGroupID).set(status.getInputContentSize());
-        SIZE_CONTENT_TOTAL.labels("queued", hostname, applicationId, processGroupID).set(status.getQueuedContentSize());
+        SIZE_CONTENT_TOTAL.labels("output", hostname, applicationId, processGroupName).set(status.getOutputContentSize());
+        SIZE_CONTENT_TOTAL.labels("input", hostname, applicationId, processGroupName).set(status.getInputContentSize());
+        SIZE_CONTENT_TOTAL.labels("queued", hostname, applicationId, processGroupName).set(status.getQueuedContentSize());
 
-        AMOUNT_ITEMS.labels("output", hostname, applicationId, processGroupID).set(status.getOutputCount());
-        AMOUNT_ITEMS.labels("input", hostname, applicationId, processGroupID).set(status.getInputCount());
-        AMOUNT_ITEMS.labels("queued", hostname, applicationId, processGroupID).set(status.getQueuedCount());
+        AMOUNT_ITEMS.labels("output", hostname, applicationId, processGroupName).set(status.getOutputCount());
+        AMOUNT_ITEMS.labels("input", hostname, applicationId, processGroupName).set(status.getInputCount());
+        AMOUNT_ITEMS.labels("queued", hostname, applicationId, processGroupName).set(status.getQueuedCount());
 
-        AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupID).set(status.getActiveThreadCount());
+        AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupName).set(status.getActiveThreadCount());
 
         return REGISTRY;
     }
