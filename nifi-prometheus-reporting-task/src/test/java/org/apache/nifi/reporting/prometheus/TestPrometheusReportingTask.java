@@ -56,6 +56,13 @@ public class TestPrometheusReportingTask {
         status.setBytesRead(60000L);
         status.setBytesWritten(80000L);
         status.setActiveThreadCount(5);
+        status.setInputCount(10);
+        status.setOutputCount(20);
+        status.setQueuedCount(30);
+        status.setInputContentSize(Integer.toUnsignedLong(0));
+        status.setOutputContentSize(Integer.toUnsignedLong(0));
+        status.setOutputContentSize(Integer.toUnsignedLong(0));
+
 
         // create a processor status with processing time
         ProcessorStatus procStatus = new ProcessorStatus();

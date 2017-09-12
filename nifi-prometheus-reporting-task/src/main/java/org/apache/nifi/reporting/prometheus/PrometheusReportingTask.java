@@ -28,6 +28,7 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
+import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.IOException;
@@ -119,30 +120,21 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
     @Override
     public void onTrigger(final ReportingContext context) {
-        final String metricsCollectorUrl = context.getProperty(METRICS_COLLECTOR_URL).evaluateAttributeExpressions().getValue().replace("http://", "");
+        final String metricsCollectorUrl = context.getProperty(METRICS_COLLECTOR_URL)
+                .evaluateAttributeExpressions().getValue()
+                .replace("http://", "");
+
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
 
-        final PushGateway pg = new PushGateway(metricsCollectorUrl);
+
+        final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
 
         for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
 
-            String processGroupID = status.getId();
-            AMOUNT_FLOWFILES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
-            AMOUNT_FLOWFILES_TOTAL.labels("queued", hostname, applicationId, processGroupID).set(status.getFlowFilesSent());
-            AMOUNT_FLOWFILES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getFlowFilesReceived());
-
-            AMOUNT_BYTES_TOTAL.labels("sent", hostname, applicationId, processGroupID).set(status.getBytesSent());
-            AMOUNT_BYTES_TOTAL.labels("read", hostname, applicationId, processGroupID).set(status.getBytesRead());
-            AMOUNT_BYTES_TOTAL.labels("written", hostname, applicationId, processGroupID).set(status.getBytesWritten());
-            AMOUNT_BYTES_TOTAL.labels("received", hostname, applicationId, processGroupID).set(status.getBytesReceived());
-            AMOUNT_BYTES_TOTAL.labels("transferred", hostname, applicationId, processGroupID).set(status.getBytesTransferred());
-
-            AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupID).set(status.getActiveThreadCount());
-
             try {
-                pg.pushAdd(REGISTRY, jobName);
+                pushGateway.pushAdd(PrometheusMetricsFactory.createNifiMetrics(status, hostname, applicationId), jobName);
             } catch (IOException e) {
                 getLogger().error("Failed pushing to Prometheus PushGateway due to {}; routing to failure", e);
             }
