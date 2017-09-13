@@ -16,10 +16,12 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
+import com.yammer.metrics.core.VirtualMachineMetrics;
 import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -41,6 +43,8 @@ import java.util.regex.Pattern;
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
+    private static final String JVM_JOB_NAME = "jvm_global";
+
     static final PropertyDescriptor METRICS_COLLECTOR_URL = new PropertyDescriptor.Builder()
             .name("Prometheus PushGateway")
             .description("The URL of the Prometheus PushGateway Service")
@@ -49,7 +53,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("http://localhost:9091")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
-
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
             .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Prometheus")
@@ -58,7 +61,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
             .description("The Hostname of this NiFi instance to be included in the metrics sent to Prometheus")
@@ -67,9 +69,8 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
-            .name("Process Group ID(s)")
+            .name("Process group ID(s)")
             .description("If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
                     + " none of the group-IDs could be found or no IDs are defined, the Nifi-Flow-ProcessGroup is used and global metrics are sent.")
             .required(false)
@@ -78,13 +79,19 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                     .createListValidator(true, true
                             , StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
-
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
-            .name("The Job Name")
+            .name("The job name")
             .description("The name of the exporting job")
             .defaultValue("nifi_reporting_job")
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder()
+            .name("Send JVM-metrics")
+            .description("Send JVM-metrics in addition to the Nifi-metrics")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
             .build();
 
     @Override
@@ -95,6 +102,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         properties.add(HOSTNAME);
         properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
+        properties.add(SEND_JVM_METRICS);
         return properties;
     }
 
@@ -107,16 +115,21 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-
-
         final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
 
-        for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
+        try {
+            if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {
+                pushGateway.pushAdd(PrometheusMetricsFactory.createJvmMetrics(VirtualMachineMetrics.getInstance(), hostname), JVM_JOB_NAME);
+            }
+        } catch (IOException e) {
+            getLogger().error("Failed pushing JVM-metrics to Prometheus PushGateway due to {}; routing to failure", e);
+        }
 
+        for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
             try {
                 pushGateway.pushAdd(PrometheusMetricsFactory.createNifiMetrics(status, hostname, applicationId), jobName);
             } catch (IOException e) {
-                getLogger().error("Failed pushing to Prometheus PushGateway due to {}; routing to failure", e);
+                getLogger().error("Failed pushing Nifi-metrics to Prometheus PushGateway due to {}; routing to failure", e);
             }
         }
     }
