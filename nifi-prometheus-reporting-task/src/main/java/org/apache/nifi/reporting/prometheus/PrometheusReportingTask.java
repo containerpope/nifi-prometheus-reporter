@@ -16,6 +16,7 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
+import com.yammer.metrics.core.VirtualMachineMetrics;
 import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -112,13 +113,16 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
-
+        final String additionalMetrics = context.getProperty(ADDITIONAL_METRICS).getValue();
 
         final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
 
         for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
 
             try {
+                if (additionalMetrics.equalsIgnoreCase(MetricTypes.JVM.name())) {
+                    pushGateway.pushAdd(PrometheusMetricsFactory.createJvmMetrics(VirtualMachineMetrics.getInstance(), hostname), "jvm_global");
+                }
                 pushGateway.pushAdd(PrometheusMetricsFactory.createNifiMetrics(status, hostname, applicationId), jobName);
             } catch (IOException e) {
                 getLogger().error("Failed pushing to Prometheus PushGateway due to {}; routing to failure", e);

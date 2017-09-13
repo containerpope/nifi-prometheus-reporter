@@ -11,52 +11,54 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 public class PrometheusMetricsFactory {
 
 
-    private static final CollectorRegistry REGISTRY = new CollectorRegistry();
+    private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
+    private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
+
 
     private static final Gauge AMOUNT_FLOWFILES_TOTAL = Gauge.build()
             .name("process_group_amount_flowfiles_total")
             .help("Total number of FlowFiles in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
+            .register(NIFI_REGISTRY);
 
     private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
             .name("process_group_amount_bytes_total")
             .help("Total number of Bytes in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
+            .register(NIFI_REGISTRY);
 
     private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
             .name("process_group_amount_threads_total")
             .help("Total amount of threads in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
+            .register(NIFI_REGISTRY);
 
     private static final Gauge SIZE_CONTENT_TOTAL = Gauge.build()
             .name("process_group_size_content_total")
             .help("Total size of content in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
+            .register(NIFI_REGISTRY);
 
     private static final Gauge AMOUNT_ITEMS = Gauge.build()
             .name("process_group_amount_items")
             .help("Total amount of items in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
-            .register(REGISTRY);
+            .register(NIFI_REGISTRY);
     private static final Gauge JVM_HEAP = Gauge.build()
             .name("jvm_heap_stats")
             .help("The JVM heap stats")
             .labelNames("status", "server")
-            .register(REGISTRY);
+            .register(JVM_REGISTRY);
     private static final Gauge JVM_THREAD = Gauge.build()
             .name("jvm_thread_stats")
             .help("The JVM thread stats")
             .labelNames("status", "server")
-            .register(REGISTRY);
+            .register(JVM_REGISTRY);
     private static final Gauge JVM_STATUS = Gauge.build()
             .name("jvm_general_stats")
             .help("The JVM general stats")
             .labelNames("status", "server")
-            .register(REGISTRY);
+            .register(JVM_REGISTRY);
 
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String hostname, String applicationId) {
         String processGroupName = status.getName();
@@ -80,7 +82,7 @@ public class PrometheusMetricsFactory {
 
         AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupName).set(status.getActiveThreadCount());
 
-        return REGISTRY;
+        return NIFI_REGISTRY;
     }
 
     public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics, String hostname) {
@@ -94,6 +96,8 @@ public class PrometheusMetricsFactory {
         JVM_STATUS.labels("count", hostname).set(jvmMetrics.uptime());
         JVM_STATUS.labels("file_descriptor", hostname).set(jvmMetrics.fileDescriptorUsage());
 
-        return REGISTRY;
+        //TODO: implement jvm metrics for GC and thread stats (see old metrics service)
+
+        return JVM_REGISTRY;
     }
 }
