@@ -1,5 +1,6 @@
 package org.apache.nifi.reporting.prometheus.api;
 
+import com.yammer.metrics.core.VirtualMachineMetrics;
 import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -41,7 +42,21 @@ public class PrometheusMetricsFactory {
             .help("Total amount of items in ProcessGroup")
             .labelNames("status", "server", "application", "process_group")
             .register(REGISTRY);
-
+    private static final Gauge JVM_HEAP = Gauge.build()
+            .name("jvm_heap_stats")
+            .help("The JVM heap stats")
+            .labelNames("status", "server")
+            .register(REGISTRY);
+    private static final Gauge JVM_THREAD = Gauge.build()
+            .name("jvm_thread_stats")
+            .help("The JVM thread stats")
+            .labelNames("status", "server")
+            .register(REGISTRY);
+    private static final Gauge JVM_STATUS = Gauge.build()
+            .name("jvm_general_stats")
+            .help("The JVM general stats")
+            .labelNames("status", "server")
+            .register(REGISTRY);
 
     public static CollectorRegistry createNifiMetrics(ProcessGroupStatus status, String hostname, String applicationId) {
         String processGroupName = status.getName();
@@ -64,6 +79,20 @@ public class PrometheusMetricsFactory {
         AMOUNT_ITEMS.labels("queued", hostname, applicationId, processGroupName).set(status.getQueuedCount());
 
         AMOUNT_THREADS_TOTAL.labels("nano", hostname, applicationId, processGroupName).set(status.getActiveThreadCount());
+
+        return REGISTRY;
+    }
+
+    public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics, String hostname) {
+        JVM_HEAP.labels("used", hostname).set(jvmMetrics.heapUsed());
+        JVM_HEAP.labels("usage", hostname).set(jvmMetrics.heapUsage());
+        JVM_HEAP.labels("non_usage", hostname).set(jvmMetrics.nonHeapUsage());
+
+        JVM_THREAD.labels("count", hostname).set(jvmMetrics.threadCount());
+        JVM_THREAD.labels("daemon_count", hostname).set(jvmMetrics.daemonThreadCount());
+
+        JVM_STATUS.labels("count", hostname).set(jvmMetrics.uptime());
+        JVM_STATUS.labels("file_descriptor", hostname).set(jvmMetrics.fileDescriptorUsage());
 
         return REGISTRY;
     }

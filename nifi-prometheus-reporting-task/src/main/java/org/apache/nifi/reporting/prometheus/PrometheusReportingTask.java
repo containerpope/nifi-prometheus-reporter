@@ -49,7 +49,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("http://localhost:9091")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
-
     static final PropertyDescriptor APPLICATION_ID = new PropertyDescriptor.Builder()
             .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Prometheus")
@@ -58,7 +57,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
             .name("Hostname")
             .description("The Hostname of this NiFi instance to be included in the metrics sent to Prometheus")
@@ -67,7 +65,6 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-
     static final PropertyDescriptor PROCESS_GROUP_IDS = new PropertyDescriptor.Builder()
             .name("Process Group ID(s)")
             .description("If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
@@ -78,11 +75,18 @@ public class PrometheusReportingTask extends AbstractReportingTask {
                     .createListValidator(true, true
                             , StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
             .build();
-
     static final PropertyDescriptor JOB_NAME = new PropertyDescriptor.Builder()
             .name("The Job Name")
             .description("The name of the exporting job")
             .defaultValue("nifi_reporting_job")
+            .expressionLanguageSupported(true)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .build();
+    static final PropertyDescriptor ADDITIONAL_METRICS = new PropertyDescriptor.Builder()
+            .name("Additional Metrics")
+            .description("Send additional metrics")
+            .defaultValue(MetricTypes.NONE.name())
+            .allowableValues(MetricTypes.values())
             .expressionLanguageSupported(true)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -95,6 +99,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         properties.add(HOSTNAME);
         properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
+        properties.add(ADDITIONAL_METRICS);
         return properties;
     }
 
@@ -143,5 +148,10 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         } else {
             return new ProcessGroupStatus[]{context.getEventAccess().getControllerStatus()};
         }
+    }
+
+    private static enum MetricTypes {
+        NONE,
+        JVM
     }
 }
