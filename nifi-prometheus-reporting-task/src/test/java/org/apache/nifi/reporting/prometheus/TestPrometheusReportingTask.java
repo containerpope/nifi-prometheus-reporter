@@ -90,7 +90,7 @@ public class TestPrometheusReportingTask {
         final String applicationId = "nifi";
         final String hostName = "localhost";
         final String jobName = "nifi_reporting_job";
-        final String additionalMetrics = "JVM";
+        final boolean jvmMetrics = true;
 
         // create the jersey client mocks for handling the post
         final Client client = Mockito.mock(Client.class);
@@ -123,8 +123,8 @@ public class TestPrometheusReportingTask {
                 .thenReturn(new MockPropertyValue("1234"));
         Mockito.when(context.getProperty(PrometheusReportingTask.JOB_NAME))
                 .thenReturn(new MockPropertyValue(jobName));
-        Mockito.when(context.getProperty(PrometheusReportingTask.ADDITIONAL_METRICS))
-                .thenReturn(new MockPropertyValue(additionalMetrics));
+        Mockito.when(context.getProperty(PrometheusReportingTask.SEND_JVM_METRICS))
+                .thenReturn(new MockPropertyValue(Boolean.toString(jvmMetrics)));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
