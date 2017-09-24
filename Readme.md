@@ -9,11 +9,12 @@ server scrapes the metrics from the pushgateway.
 For setting up the requirements there is a docker-compose file in docker/prometheus, that sets up the Pushgateway, the Prometheus server and a Grafana server.
 After starting the docker containers nifi needs to be downloaded and the ReportingTask has to be copied into the lib directory.
 
+
 A sample dashboard can be found here: [Sample Dashboard](https://grafana.com/dashboards/3294)
 
-The Prometheus server runs under: http://localhost:9090
-The Pushgateway runs under: http://localhost:9091
-The Grafana instance runs under: http://localhost:3000
+* The Prometheus server runs under: http://localhost:9090
+* The Pushgateway runs under: http://localhost:9091
+* The Grafana instance runs under: http://localhost:3000
 
 After setting up a simple flow and the ReportingTask, the flow can be started and the results should be visible in the Grafana dashboard.
 
