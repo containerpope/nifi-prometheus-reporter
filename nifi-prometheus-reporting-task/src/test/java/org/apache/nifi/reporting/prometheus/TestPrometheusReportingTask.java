@@ -47,15 +47,25 @@ public class TestPrometheusReportingTask {
     public void setup() {
         status = new ProcessGroupStatus();
         status.setId("1234");
+        status.setName("localTest");
         status.setFlowFilesReceived(5);
-        status.setBytesReceived(10000);
         status.setFlowFilesSent(10);
+        status.setFlowFilesTransferred(10);
+        status.setBytesReceived(10000);
         status.setBytesSent(20000);
-        status.setQueuedCount(100);
-        status.setQueuedContentSize(1024L);
+        status.setBytesTransferred(10000);
         status.setBytesRead(60000L);
         status.setBytesWritten(80000L);
+        status.setQueuedCount(100);
+        status.setQueuedContentSize(1024L);
         status.setActiveThreadCount(5);
+        status.setInputCount(10);
+        status.setOutputCount(20);
+        status.setQueuedCount(30);
+        status.setInputContentSize(Integer.toUnsignedLong(0));
+        status.setOutputContentSize(Integer.toUnsignedLong(0));
+        status.setOutputContentSize(Integer.toUnsignedLong(0));
+
 
         // create a processor status with processing time
         ProcessorStatus procStatus = new ProcessorStatus();
@@ -80,6 +90,7 @@ public class TestPrometheusReportingTask {
         final String applicationId = "nifi";
         final String hostName = "localhost";
         final String jobName = "nifi_reporting_job";
+        final boolean jvmMetrics = true;
 
         // create the jersey client mocks for handling the post
         final Client client = Mockito.mock(Client.class);
@@ -108,10 +119,12 @@ public class TestPrometheusReportingTask {
                 .thenReturn(new MockPropertyValue(applicationId));
         Mockito.when(context.getProperty(PrometheusReportingTask.HOSTNAME))
                 .thenReturn(new MockPropertyValue(hostName));
-        Mockito.when(context.getProperty(PrometheusReportingTask.PROCESS_GROUP_ID))
+        Mockito.when(context.getProperty(PrometheusReportingTask.PROCESS_GROUP_IDS))
                 .thenReturn(new MockPropertyValue("1234"));
         Mockito.when(context.getProperty(PrometheusReportingTask.JOB_NAME))
                 .thenReturn(new MockPropertyValue(jobName));
+        Mockito.when(context.getProperty(PrometheusReportingTask.SEND_JVM_METRICS))
+                .thenReturn(new MockPropertyValue(Boolean.toString(jvmMetrics)));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);
