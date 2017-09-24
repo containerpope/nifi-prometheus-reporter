@@ -1,0 +1,24 @@
+version: '3.1'
+
+volumes:
+    grafana-data:
+
+services:
+    server:
+        build: .
+        ports:
+        - "9090:9090"
+        volumes:
+        - "./conf/:/etc/prometheus/"
+
+    pushgateway:
+        image: prom/pushgateway
+        ports:
+        - "9091:9091"
+
+    grafana:
+        image: grafana/grafana:latest
+        ports:
+        - "3000:3000"
+        volumes:
+        - "grafana-data:/var/lib/grafana"
