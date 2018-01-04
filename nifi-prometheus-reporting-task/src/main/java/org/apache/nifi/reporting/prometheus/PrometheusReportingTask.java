@@ -21,7 +21,6 @@ import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.components.AllowableValue;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
@@ -32,10 +31,7 @@ import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Tags({"reporting", "prometheus", "metrics"})
@@ -61,9 +57,9 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
-    static final PropertyDescriptor HOSTNAME = new PropertyDescriptor.Builder()
-            .name("Hostname")
-            .description("The Hostname of this NiFi instance to be included in the metrics sent to Prometheus")
+    static final PropertyDescriptor INSTANCE_ID = new PropertyDescriptor.Builder()
+            .name("Instance ID")
+            .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
             .required(true)
             .expressionLanguageSupported(true)
             .defaultValue("${hostname(true)}")
@@ -99,7 +95,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final List<PropertyDescriptor> properties = new ArrayList<>();
         properties.add(METRICS_COLLECTOR_URL);
         properties.add(APPLICATION_ID);
-        properties.add(HOSTNAME);
+        properties.add(INSTANCE_ID);
         properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
         properties.add(SEND_JVM_METRICS);
@@ -114,12 +110,13 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
-        final String hostname = context.getProperty(HOSTNAME).evaluateAttributeExpressions().getValue();
+        final String instance = context.getProperty(INSTANCE_ID).evaluateAttributeExpressions().getValue();
+        final Map<String,String> groupingKey = Collections.singletonMap("instance", instance);
         final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
 
         try {
             if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {
-                pushGateway.pushAdd(PrometheusMetricsFactory.createJvmMetrics(VirtualMachineMetrics.getInstance(), hostname), JVM_JOB_NAME);
+                pushGateway.pushAdd(PrometheusMetricsFactory.createJvmMetrics(VirtualMachineMetrics.getInstance()), JVM_JOB_NAME, groupingKey);
             }
         } catch (IOException e) {
             getLogger().error("Failed pushing JVM-metrics to Prometheus PushGateway due to {}; routing to failure", e);
@@ -127,7 +124,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
 
         for (ProcessGroupStatus status : searchProcessGroups(context, context.getProperty(PROCESS_GROUP_IDS))) {
             try {
-                pushGateway.pushAdd(PrometheusMetricsFactory.createNifiMetrics(status, hostname, applicationId), jobName);
+                pushGateway.pushAdd(PrometheusMetricsFactory.createNifiMetrics(status, applicationId), jobName, groupingKey);
             } catch (IOException e) {
                 getLogger().error("Failed pushing Nifi-metrics to Prometheus PushGateway due to {}; routing to failure", e);
             }
