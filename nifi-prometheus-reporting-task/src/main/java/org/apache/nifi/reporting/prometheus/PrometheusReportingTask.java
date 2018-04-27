@@ -16,6 +16,15 @@
  */
 package org.apache.nifi.reporting.prometheus;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Pattern;
+
 import com.yammer.metrics.core.VirtualMachineMetrics;
 import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
@@ -29,10 +38,6 @@ import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
-
-import java.io.IOException;
-import java.util.*;
-import java.util.regex.Pattern;
 
 @Tags({"reporting", "prometheus", "metrics"})
 @CapabilityDescription("")
