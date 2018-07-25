@@ -17,13 +17,13 @@
 -->
     <modelVersion>4.0.0</modelVersion>
 	<properties>
-		<nifi.version>1.6.0</nifi.version>
+		<nifi.version>1.7.1</nifi.version>
 	</properties>
 
     <parent>
         <groupId>org.apache.nifi</groupId>
         <artifactId>nifi-nar-bundles</artifactId>
-        <version>1.6.0</version>
+        <version>1.7.1</version>
     </parent>
 
     <artifactId>nifi-prometheus-bundle</artifactId>
