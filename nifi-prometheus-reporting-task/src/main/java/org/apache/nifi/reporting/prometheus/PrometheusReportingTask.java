@@ -33,14 +33,21 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
+import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.processor.util.StandardValidators;
 import org.apache.nifi.reporting.AbstractReportingTask;
 import org.apache.nifi.reporting.ReportingContext;
 import org.apache.nifi.reporting.prometheus.api.PrometheusMetricsFactory;
 import org.apache.nifi.scheduling.SchedulingStrategy;
 
+/**
+ * ReportingTask to send metrics from Nifi and JVM to Prometheus PushGateway.
+ *
+ * Author: Daniel-Seifert
+ */
 @Tags({"reporting", "prometheus", "metrics"})
-@CapabilityDescription("")
+@CapabilityDescription("Sends JVM-metrics as well as Nifi-metrics to a Prometheus PushGateway." +
+        "Nifi-metrics can be either configured global or on process-group level.")
 @DefaultSchedule(strategy = SchedulingStrategy.TIMER_DRIVEN, period = "1 min")
 public class PrometheusReportingTask extends AbstractReportingTask {
 
@@ -50,7 +57,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .name("Prometheus PushGateway")
             .description("The URL of the Prometheus PushGateway Service")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("http://localhost:9091")
             .addValidator(StandardValidators.URL_VALIDATOR)
             .build();
@@ -58,7 +65,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .name("Application ID")
             .description("The Application ID to be included in the metrics sent to Prometheus")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("nifi")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -66,7 +73,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .name("Instance ID")
             .description("Id of this NiFi instance to be included in the metrics sent to Prometheus")
             .required(true)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .defaultValue("${hostname(true)}")
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
@@ -75,7 +82,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .description("If specified, the reporting task will send metrics the configured ProcessGroup(s) only. Multiple IDs should be separated by a comma. If"
                     + " none of the group-IDs could be found or no IDs are defined, the Nifi-Flow-ProcessGroup is used and global metrics are sent.")
             .required(false)
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators
                     .createListValidator(true, true
                             , StandardValidators.createRegexMatchingValidator(Pattern.compile("[0-9a-z-]+"))))
@@ -84,7 +91,7 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .name("The job name")
             .description("The name of the exporting job")
             .defaultValue("nifi_reporting_job")
-            .expressionLanguageSupported(true)
+            .expressionLanguageSupported(ExpressionLanguageScope.VARIABLE_REGISTRY)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .build();
     static final PropertyDescriptor SEND_JVM_METRICS = new PropertyDescriptor.Builder()
