@@ -22,7 +22,7 @@
         <version>1.7.1</version>
     </parent>
 	<properties>
-		<prometheus.version>0.3.0</prometheus.version>
+		<prometheus.version>0.5.0</prometheus.version>
 		<yammer.metrics.version>2.2.0</yammer.metrics.version>
 	</properties>
 

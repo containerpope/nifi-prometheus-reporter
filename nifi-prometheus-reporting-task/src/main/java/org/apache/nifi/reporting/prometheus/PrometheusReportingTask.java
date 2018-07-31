@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.yammer.metrics.core.VirtualMachineMetrics;
+import io.prometheus.client.exporter.BasicAuthHttpConnectionFactory;
 import io.prometheus.client.exporter.PushGateway;
 import org.apache.nifi.annotation.configuration.DefaultSchedule;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
@@ -101,6 +102,24 @@ public class PrometheusReportingTask extends AbstractReportingTask {
             .defaultValue("false")
             .required(true)
             .build();
+    static final PropertyDescriptor USE_AUTHENTICATION = new PropertyDescriptor.Builder()
+            .name("Use URL authentication")
+            .description("Whether to use URL authentication or not")
+            .allowableValues("true", "false")
+            .defaultValue("false")
+            .required(true)
+            .build();
+    static final PropertyDescriptor AUTH_USERNAME = new PropertyDescriptor.Builder()
+            .name("Auth username")
+            .description("Username that is used for URL authentication.")
+            .required(false)
+            .build();
+    static final PropertyDescriptor AUTH_PASSWORD = new PropertyDescriptor.Builder()
+            .name("Auth password")
+            .description("Password that is used for URL authentication.")
+            .required(false)
+            .sensitive(true)
+            .build();
 
     @Override
     protected List<PropertyDescriptor> getSupportedPropertyDescriptors() {
@@ -111,6 +130,9 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         properties.add(PROCESS_GROUP_IDS);
         properties.add(JOB_NAME);
         properties.add(SEND_JVM_METRICS);
+        properties.add(USE_AUTHENTICATION);
+        properties.add(AUTH_USERNAME);
+        properties.add(AUTH_PASSWORD);
         return properties;
     }
 
@@ -123,8 +145,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String instance = context.getProperty(INSTANCE_ID).evaluateAttributeExpressions().getValue();
+        final String username = context.getProperty(AUTH_USERNAME).getValue();
+        final String password = context.getProperty(AUTH_PASSWORD).getValue();
         final Map<String,String> groupingKey = Collections.singletonMap("instance", instance);
+
+        // Init PushGateway
         final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
+        if(context.getProperty(USE_AUTHENTICATION).asBoolean()){
+            pushGateway.setConnectionFactory(new BasicAuthHttpConnectionFactory(username, password));
+        }
 
         try {
             if (context.getProperty(SEND_JVM_METRICS).asBoolean()) {
