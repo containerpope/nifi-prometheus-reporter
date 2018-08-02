@@ -85,12 +85,13 @@ public class TestPrometheusReportingTask {
     }
 
     @Test
-    public void testOnTrigger() throws InitializationException, IOException {
+    public void testOnTrigger() throws InitializationException {
         final String metricsUrl = "http://localhost:9091";
         final String applicationId = "nifi";
         final String hostName = "localhost";
         final String jobName = "nifi_reporting_job";
         final boolean jvmMetrics = true;
+        final boolean authentication = false;
 
         // create the jersey client mocks for handling the post
         final Client client = Mockito.mock(Client.class);
@@ -125,6 +126,8 @@ public class TestPrometheusReportingTask {
                 .thenReturn(new MockPropertyValue(jobName));
         Mockito.when(context.getProperty(PrometheusReportingTask.SEND_JVM_METRICS))
                 .thenReturn(new MockPropertyValue(Boolean.toString(jvmMetrics)));
+        Mockito.when(context.getProperty(PrometheusReportingTask.USE_AUTHENTICATION))
+                .thenReturn(new MockPropertyValue(Boolean.toString(authentication)));
 
         final EventAccess eventAccess = Mockito.mock(EventAccess.class);
         Mockito.when(context.getEventAccess()).thenReturn(eventAccess);

@@ -145,13 +145,13 @@ public class PrometheusReportingTask extends AbstractReportingTask {
         final String applicationId = context.getProperty(APPLICATION_ID).evaluateAttributeExpressions().getValue();
         final String jobName = context.getProperty(JOB_NAME).getValue();
         final String instance = context.getProperty(INSTANCE_ID).evaluateAttributeExpressions().getValue();
-        final String username = context.getProperty(AUTH_USERNAME).getValue();
-        final String password = context.getProperty(AUTH_PASSWORD).getValue();
         final Map<String,String> groupingKey = Collections.singletonMap("instance", instance);
 
         // Init PushGateway
         final PushGateway pushGateway = new PushGateway(metricsCollectorUrl);
         if(context.getProperty(USE_AUTHENTICATION).asBoolean()){
+            final String username = context.getProperty(AUTH_USERNAME).getValue();
+            final String password = context.getProperty(AUTH_PASSWORD).getValue();
             pushGateway.setConnectionFactory(new BasicAuthHttpConnectionFactory(username, password));
         }
 

@@ -50,6 +50,11 @@
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.nifi:nifi-security-utils:1.6.0" level="project" />
     <orderEntry type="library" scope="TEST" name="Maven: org.apache.nifi:nifi-properties-loader:1.6.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.nifi:nifi-properties:1.6.0" level="project" />
+    <orderEntry type="library" name="Maven: io.prometheus:simpleclient:0.5.0" level="project" />
+    <orderEntry type="library" name="Maven: io.prometheus:simpleclient_hotspot:0.5.0" level="project" />
+    <orderEntry type="library" name="Maven: io.prometheus:simpleclient_servlet:0.5.0" level="project" />
+    <orderEntry type="library" name="Maven: io.prometheus:simpleclient_common:0.5.0" level="project" />
+    <orderEntry type="library" name="Maven: io.prometheus:simpleclient_pushgateway:0.5.0" level="project" />
     <orderEntry type="library" name="Maven: com.yammer.metrics:metrics-core:2.2.0" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.slf4j:slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.nifi:nifi-api:1.7.1" level="project" />
