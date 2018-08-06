@@ -43,8 +43,6 @@ import org.apache.nifi.scheduling.SchedulingStrategy;
 
 /**
  * ReportingTask to send metrics from Nifi and JVM to Prometheus PushGateway.
- *
- * Author: Daniel-Seifert
  */
 @Tags({"reporting", "prometheus", "metrics"})
 @CapabilityDescription("Sends JVM-metrics as well as Nifi-metrics to a Prometheus PushGateway." +

@@ -18,8 +18,6 @@ package org.apache.nifi.reporting.prometheus.metrics;
 
 /**
  * The Metric names to send to Prometheus.
- *
- * Author: mjoerg
  */
 public interface MetricNames {
 

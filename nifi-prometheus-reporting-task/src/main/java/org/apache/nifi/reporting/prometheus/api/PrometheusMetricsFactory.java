@@ -7,8 +7,6 @@ import org.apache.nifi.controller.status.ProcessGroupStatus;
 
 /**
  * Factory class to create {@link CollectorRegistry}s by several metrics.
- *
- * Author: mjoerg
  */
 public class PrometheusMetricsFactory {
 
