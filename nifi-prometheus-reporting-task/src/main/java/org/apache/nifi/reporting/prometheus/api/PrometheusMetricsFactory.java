@@ -5,6 +5,8 @@ import io.prometheus.client.CollectorRegistry;
 import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Factory class to create {@link CollectorRegistry}s by several metrics.
  */
@@ -51,9 +53,21 @@ public class PrometheusMetricsFactory {
             .labelNames("status")
             .register(JVM_REGISTRY);
 
+    private static final Gauge JVM_POOL = Gauge.build()
+            .name("jvm_pool_stats")
+            .help("The JVM pool stats")
+            .labelNames("status")
+            .register(JVM_REGISTRY);
+
     private static final Gauge JVM_THREAD = Gauge.build()
             .name("jvm_thread_stats")
             .help("The JVM thread stats")
+            .labelNames("status")
+            .register(JVM_REGISTRY);
+
+    private static final Gauge JVM_GC = Gauge.build()
+            .name("jvm_gc_stats")
+            .help("The JVM Garbage Collector stats")
             .labelNames("status")
             .register(JVM_REGISTRY);
 
@@ -96,10 +110,41 @@ public class PrometheusMetricsFactory {
         JVM_THREAD.labels("count").set(jvmMetrics.threadCount());
         JVM_THREAD.labels("daemon_count").set(jvmMetrics.daemonThreadCount());
 
-        JVM_STATUS.labels("count").set(jvmMetrics.uptime());
+        JVM_STATUS.labels("uptime").set(jvmMetrics.uptime());
         JVM_STATUS.labels("file_descriptor").set(jvmMetrics.fileDescriptorUsage());
+        JVM_STATUS.labels("total_init").set(jvmMetrics.totalInit());
+        JVM_STATUS.labels("total_max").set(jvmMetrics.totalMax());
+        JVM_STATUS.labels("total_committed").set(jvmMetrics.totalCommitted());
+        JVM_STATUS.labels("total_used").set(jvmMetrics.totalUsed());
 
-        //TODO: implement jvm metrics for GC and thread stats (see old metrics service)
+        // Append thread states
+        jvmMetrics.threadStatePercentages()
+                .forEach((state, usage) -> {
+                    String name = state.name().toLowerCase().replaceAll("\\s", "_");
+                    JVM_THREAD.labels("state_" + name).set(usage);
+                });
+
+        // Append GC stats
+        jvmMetrics.garbageCollectors()
+                .forEach((name, stat) -> {
+                    name = name.toLowerCase().replaceAll("\\s", "_");
+                    JVM_GC.labels(name + "_runs").set(stat.getRuns());
+                    JVM_GC.labels(name + "_time_ms").set(stat.getTime(TimeUnit.MILLISECONDS));
+                });
+
+        // Append pool stats
+        jvmMetrics.memoryPoolUsage()
+                .forEach((name, usage) -> {
+                    name = name.toLowerCase().replaceAll("\\s", "_");
+                    JVM_POOL.labels("mem_pool_" + name).set(usage);
+                });
+        jvmMetrics.getBufferPoolStats()
+                .forEach((name, stat) -> {
+                    name = name.toLowerCase().replaceAll("\\s", "_");
+                    JVM_POOL.labels("buff_pool_" + name + "_count").set(stat.getCount());
+                    JVM_POOL.labels("buff_pool_" + name + "_mem_used").set(stat.getMemoryUsed());
+                    JVM_POOL.labels("buff_pool_" + name + "_capacity").set(stat.getTotalCapacity());
+                });
 
         return JVM_REGISTRY;
     }
