@@ -26,8 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A service used to produce key/value metrics based on a given input.
- *
- * Author: mjoerg
  */
 public class MetricsService {
 

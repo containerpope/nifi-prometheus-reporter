@@ -9,8 +9,6 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Factory class to create {@link CollectorRegistry}s by several metrics.
- * <p>
- * Author: mjoerg
  */
 public class PrometheusMetricsFactory {
 
