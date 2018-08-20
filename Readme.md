@@ -48,4 +48,3 @@ To restart Nifi execute:
 
 * **Matthias Jörg** - *Initial work* - [mkjoerg](https://github.com/mkjoerg)
 * **Daniel Seifert** - *Initial work* - [Daniel-Seifert](https://github.com/Daniel-Seifert)
-* 
