@@ -6,7 +6,7 @@ import io.prometheus.client.Gauge;
 import org.apache.nifi.controller.status.ProcessGroupStatus;
 
 /**
- * Created by mjoerg on 12.09.17.
+ * Factory class to create {@link CollectorRegistry}s by several metrics.
  */
 public class PrometheusMetricsFactory {
 
