@@ -48,7 +48,7 @@ The previously built .nar archive has to be copied into the nifi/lib directory
 and can be used after a restart of nifi.
 ```sh
 # Copy .nar into Nifi's lib folder
-cp nifi-prometheus-nar/target/nifi-prometheus-nar-1.7.1.nar NIFI_HOME/lib
+cp nifi-prometheus-nar/target/nifi-prometheus-nar-1.7.1.nar NIFI_HOME/lib/nifi-prometheus-nar-1.7.1.nar
 
 # Start nifi
 NIFI_HOME/bin/nifi.sh start
