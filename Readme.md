@@ -31,16 +31,29 @@ The tools can be setup with Docker or manually.
 ### Installing
 
 The project can be build with maven as the standard fasion of building 
-nifi-processor-bundles.
+nifi-processor-bundles. Following snippet shows the entire setup with pre-installed Nifi:
+```sh
+# Clone project
+git clone https://github.com/mkjoerg/nifi-prometheus-reporter.git
+# Move into cloned dir
+cd nifi-prometheus-reporter
+
+# Build project
+mvn clean install
+```
 
 ## Deployment
 
 The previously built .nar archive has to be copied into the nifi/lib directory 
 and can be used after a restart of nifi.
-
-To restart Nifi execute:
 ```sh
-./nifi/bin/nifi.sh restart
+# Copy .nar into Nifi's lib folder
+cp nifi-prometheus-nar/target/nifi-prometheus-nar-1.7.1.nar NIFI_HOME/lib
+
+# Start nifi
+NIFI_HOME/bin/nifi.sh start
+# Or restart if already running
+NIFI_HOME/bin/nifi.sh restart
 
 ```
 
