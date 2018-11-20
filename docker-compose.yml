@@ -4,12 +4,12 @@ volumes:
     grafana-data:
 
 services:
-    server:
-        build: .
+    prometheus:
+        image: prom/prometheus
         ports:
         - "9090:9090"
         volumes:
-        - "./conf/:/etc/prometheus/"
+        - "./conf/prometheus.yml:/etc/prometheus/prometheus.yml"
 
     pushgateway:
         image: prom/pushgateway

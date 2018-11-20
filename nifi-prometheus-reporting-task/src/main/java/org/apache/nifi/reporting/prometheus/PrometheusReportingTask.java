@@ -110,11 +110,15 @@ public class PrometheusReportingTask extends AbstractReportingTask {
     static final PropertyDescriptor AUTH_USERNAME = new PropertyDescriptor.Builder()
             .name("Auth username")
             .description("Username that is used for URL authentication.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("user")
             .required(false)
             .build();
     static final PropertyDescriptor AUTH_PASSWORD = new PropertyDescriptor.Builder()
             .name("Auth password")
             .description("Password that is used for URL authentication.")
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .defaultValue("password")
             .required(false)
             .sensitive(true)
             .build();
