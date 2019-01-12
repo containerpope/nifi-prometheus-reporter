@@ -1,6 +1,6 @@
 FROM apache/nifi:1.8.0
 
-ADD https://github.com/mkjoerg/nifi-prometheus-reporter/releases/download/1.8.0/nifi-prometheus-nar-1.8.0.nar ${NIFI_BASE_DIR}/nifi-current/lib
+ADD https://github.com/mkjoerg/nifi-prometheus-reporter/releases/download/nifi-1.8.0/nifi-prometheus-nar-1.8.0.nar ${NIFI_BASE_DIR}/nifi-current/lib
 
 USER root
 
