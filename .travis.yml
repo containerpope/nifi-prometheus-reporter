@@ -5,12 +5,10 @@ jdk:
 cache:
   directories:
     - $HOME/.m2
-before_install:
-  - echo -e "machine github.com\n  login $GITHUB_KEY" > ~/.netrc
 deploy:
   provider: releases
   api_key:
-    secure: GITHUB_KEY
+    secure: $GITHUB_KEY
   file_glob: true
   file: nifi-prometheus-nar/target/*.nar
   skip_cleanup: true
