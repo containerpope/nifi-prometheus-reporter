@@ -16,6 +16,11 @@ services:
         ports:
         - "9091:9091"
 
+    nifi:
+        build: .
+        ports:
+        - "8080:8080"
+
     grafana:
         image: grafana/grafana:latest
         ports:

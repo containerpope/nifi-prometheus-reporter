@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 public class PrometheusMetricsFactory {
 
 
-    private static final CollectorRegistry NIFI_REGISTRY = new CollectorRegistry();
+    private static final CollectorRegistry NIFI_METRICS_REGISTRY = new CollectorRegistry();
     private static final CollectorRegistry JVM_REGISTRY = new CollectorRegistry();
 
 
@@ -21,31 +21,31 @@ public class PrometheusMetricsFactory {
             .name("process_group_amount_flowfiles_total")
             .help("Total number of FlowFiles in ProcessGroup")
             .labelNames("status", "application", "process_group")
-            .register(NIFI_REGISTRY);
+            .register(NIFI_METRICS_REGISTRY);
 
     private static final Gauge AMOUNT_BYTES_TOTAL = Gauge.build()
             .name("process_group_amount_bytes_total")
             .help("Total number of Bytes in ProcessGroup")
             .labelNames("status", "application", "process_group")
-            .register(NIFI_REGISTRY);
+            .register(NIFI_METRICS_REGISTRY);
 
     private static final Gauge AMOUNT_THREADS_TOTAL = Gauge.build()
             .name("process_group_amount_threads_total")
             .help("Total amount of threads in ProcessGroup")
             .labelNames("status", "application", "process_group")
-            .register(NIFI_REGISTRY);
+            .register(NIFI_METRICS_REGISTRY);
 
     private static final Gauge SIZE_CONTENT_TOTAL = Gauge.build()
             .name("process_group_size_content_total")
             .help("Total size of content in ProcessGroup")
             .labelNames("status", "application", "process_group")
-            .register(NIFI_REGISTRY);
+            .register(NIFI_METRICS_REGISTRY);
 
     private static final Gauge AMOUNT_ITEMS = Gauge.build()
             .name("process_group_amount_items")
             .help("Total amount of items in ProcessGroup")
             .labelNames("status", "application", "process_group")
-            .register(NIFI_REGISTRY);
+            .register(NIFI_METRICS_REGISTRY);
 
     private static final Gauge JVM_HEAP = Gauge.build()
             .name("jvm_heap_stats")
@@ -99,7 +99,7 @@ public class PrometheusMetricsFactory {
 
         AMOUNT_THREADS_TOTAL.labels("nano", applicationId, processGroupName).set(status.getActiveThreadCount());
 
-        return NIFI_REGISTRY;
+        return NIFI_METRICS_REGISTRY;
     }
 
     public static CollectorRegistry createJvmMetrics(VirtualMachineMetrics jvmMetrics) {

@@ -17,10 +17,17 @@ This will bootstrap:
 * A Prometheus server that runs under: http://localhost:9090
 * A Pushgateway that runs under: http://localhost:9091
 * A Grafana instance that runs under: http://localhost:3000
+* A Nifi instance, containing the reporting task under: http://localhost:8080/nifi
 
 A sample dashboard can be found here: [Sample Dashboard](https://grafana.com/dashboards/3294)
 
 After setting up a simple flow and the ReportingTask, the flow can be started and the results should be visible in the Grafana dashboard.
+
+## Docs
+
+See the docs for more details:
+
+1. [Configuration](docs/Configuration.md) 
 
 ### Prerequisites
 
@@ -32,9 +39,21 @@ setup and running.
 
 The tools can be setup with Docker or manually.
 
-### Installing
+### Install to running Nifi instance
+First download the [current release](https://github.com/mkjoerg/nifi-prometheus-reporter/releases) and then
+copy the nar file into your Nifi lib folder. (Most times under __/opt/nifi/<nifi-version>/lib__)
 
-The project can be build with maven as the standard fasion of building 
+After this, just restart Nifi.
+
+### Limitations
+The Reporting Task can't send custom metrics from processors to the Pushgateway. If you want 
+something like this, you have to setup your own processor, that can read FlowFiles, generate custom metrics
+and send them to a Pushgateway. Because this is such a custom thing, it can't be done with this Reporting Task
+and it is also not the scope of this project.
+
+### Build it yourself
+
+The project can be build with maven as the standard fashion of building 
 nifi-processor-bundles. Following snippet shows the entire setup with pre-installed Nifi:
 ```sh
 # Clone project
@@ -45,9 +64,6 @@ cd nifi-prometheus-reporter
 # Build project
 mvn clean install
 ```
-
-## Deployment
-
 The previously built .nar archive has to be copied into the nifi/lib directory 
 and can be used after a restart of nifi.
 ```sh
@@ -59,7 +75,6 @@ NIFI_HOME/bin/nifi.sh start
 # Or restart if already running
 NIFI_HOME/bin/nifi.sh restart
 
-```
 
 ## Authors
 

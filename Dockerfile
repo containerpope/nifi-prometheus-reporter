@@ -1,9 +1,11 @@
-FROM maven:3.5.3-jdk-8-slim
+FROM apache/nifi:1.8.0
 
-COPY ./nifi-prometheus-nar /app/nifi-prometheus-nar
-COPY ./nifi-prometheus-reporting-task /app/nifi-prometheus-reporting-task
-COPY pom.xml /app
-WORKDIR /app
+ADD https://github.com/mkjoerg/nifi-prometheus-reporter/releases/download/1.8.0/nifi-prometheus-nar-1.8.0.nar ${NIFI_BASE_DIR}/nifi-current/lib
 
-RUN ls -l
-RUN mvn clean install
+USER root
+
+# Setup NiFi user and create necessary directories
+RUN chown -R nifi:nifi ${NIFI_BASE_DIR}/nifi-current/lib
+
+USER nifi
+
