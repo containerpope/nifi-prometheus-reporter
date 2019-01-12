@@ -1,4 +1,4 @@
-# Nifi Prometheus Reporter
+# Nifi Prometheus Reporter [![Build Status](https://travis-ci.org/mkjoerg/nifi-prometheus-reporter.svg?branch=master)](https://travis-ci.org/mkjoerg/nifi-prometheus-reporter)
 
 A reporting task in Nifi which is capable of sending monitoring statistics as 
 prometheus metrics to a prometheus pushgateway. After this, the Prometheus
