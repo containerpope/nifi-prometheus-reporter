@@ -20,5 +20,5 @@ jobs:
       - run: mvn clean install
 
       - store_artifacts:
-          path: nifi-prometheus-nar/target/*.nar
+          path: nifi-prometheus-nar/target/
           destination: artifact-file
